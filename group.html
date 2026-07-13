@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Group — Wisp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="ambient">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+  </div>
+
+  <div id="screenLoading" class="center-screen">
+    <div class="center-card glass">
+      <div class="spinner"></div>
+      <p>Connecting…</p>
+    </div>
+  </div>
+
+  <div id="screenExpired" class="center-screen hidden">
+    <div class="center-card glass">
+      <div class="icon">💨</div>
+      <h2>This group has faded</h2>
+      <p>It's been more than 24 hours, so this group and every message in it is gone for good.</p>
+    </div>
+  </div>
+
+  <div id="screenError" class="center-screen hidden">
+    <div class="center-card glass">
+      <div class="icon">🔗</div>
+      <h2>Link not valid</h2>
+      <p>This group link doesn't point to anything. Double check it, or ask for a fresh one.</p>
+    </div>
+  </div>
+
+  <div id="chatApp" class="app hidden">
+
+    <header class="topbar glass">
+      <div class="topbar-left">
+        <a href="index.html" class="back-btn">←</a>
+        <div class="topbar-titles">
+          <h1 id="groupTitle">Group</h1>
+          <p class="subtitle">Anonymous · open group</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button id="enableNotifsBtn" class="btn-secondary notif-btn hidden">🔔 Enable sound</button>
+        <span id="onlineCount" class="online-pill hidden">1 online</span>
+        <span id="expiryPill" class="expiry-pill"></span>
+        <span id="statusDot" class="status-dot connecting"></span>
+      </div>
+    </header>
+
+    <main id="messages" class="messages">
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">💬</div>
+        <p>No messages yet.</p>
+        <p class="empty-sub">Be the first to say something here.</p>
+      </div>
+    </main>
+
+    <button id="jumpToLatest" class="jump-btn glass hidden">↓ New messages</button>
+
+    <footer class="composer glass">
+      <div class="composer-inner">
+        <textarea id="messageInput" placeholder="Message the group anonymously…" maxlength="500" rows="1"></textarea>
+        <div class="composer-meta">
+          <span id="charCount" class="char-count">0/500</span>
+          <button id="sendBtn" class="send-btn" aria-label="Send message">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 12L20 4L14 20L11 13L4 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="shared.js"></script>
+  <script src="group.js"></script>
+</body>
+</html>

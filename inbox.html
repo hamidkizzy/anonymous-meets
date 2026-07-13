@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Inbox — Wisp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body class="scrollable">
+
+  <div class="ambient">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+  </div>
+
+  <div id="screenLoading" class="center-screen">
+    <div class="center-card glass">
+      <div class="spinner"></div>
+      <p>Connecting…</p>
+    </div>
+  </div>
+
+  <div id="inboxShell" class="inbox-shell hidden">
+
+    <div class="inbox-header glass">
+      <a href="index.html" class="back-btn">←</a>
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">My Inbox</span>
+      </div>
+      <span style="width:34px;"></span>
+    </div>
+
+    <div class="my-link-card glass">
+      <h2>Your personal chat link</h2>
+      <p class="sub" style="color:var(--text-muted); font-size:12.5px; margin: 0 0 12px;">
+        Always works, never expires. Anyone who opens it starts their own private chat with you.
+      </p>
+      <div class="share-link-box" id="myLinkBox"></div>
+      <div class="result-actions" style="margin-top:12px;">
+        <button id="copyMyLinkBtn" class="btn-secondary">Copy link</button>
+        <button id="toggleMyQrBtn" class="btn-secondary">Show QR code</button>
+      </div>
+      <div id="myQrBox" class="qr-box hidden">
+        <img id="myQrImg" src="" alt="QR code" width="180" height="180" />
+      </div>
+    </div>
+
+    <div id="threadList" class="thread-list"></div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="shared.js"></script>
+  <script src="inbox.js"></script>
+</body>
+</html>

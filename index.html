@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Wisp — Anonymous, Self-Destructing Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body class="scrollable">
+
+  <div class="ambient">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+  </div>
+
+  <div id="screenLoading" class="center-screen">
+    <div class="center-card glass">
+      <div class="spinner"></div>
+      <p>Connecting…</p>
+    </div>
+  </div>
+
+  <div id="homeShell" class="home-shell hidden">
+
+    <div class="home-header">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">Wisp</span>
+      </div>
+      <span class="home-tagline">disappears in 24h</span>
+    </div>
+
+    <div class="home-hero">
+      <h1>Say it, then let it go.</h1>
+      <p>Fully anonymous chat that erases itself after 24 hours. No accounts, no names, no history left behind.</p>
+    </div>
+
+    <!-- Create panel -->
+    <div id="createPanel" class="create-card glass">
+      <div class="type-grid">
+        <div class="type-option" data-type="chat">
+          <div class="emoji">💬</div>
+          <div class="label">Chat</div>
+          <div class="desc">Just you and whoever opens your link, one-on-one</div>
+        </div>
+        <div class="type-option" data-type="group">
+          <div class="emoji">👥</div>
+          <div class="label">Group</div>
+          <div class="desc">Everyone who opens the link joins the same room</div>
+        </div>
+      </div>
+
+      <div id="groupNameField" class="field hidden">
+        <label for="groupNameInput">Group name (optional)</label>
+        <input type="text" id="groupNameInput" placeholder="e.g. Late Night Study Room" maxlength="60" />
+      </div>
+
+      <button id="createBtn" class="btn-primary" disabled>Choose a type above</button>
+      <div id="createError" class="error-text"></div>
+    </div>
+
+    <!-- Result panel (shown after creating) -->
+    <div id="resultPanel" class="create-card glass result-panel hidden">
+      <div class="icon">✨</div>
+      <h2 id="resultTitle">Your link is ready</h2>
+      <p class="sub" id="resultSub">Share it however you like — text, DM, or scan the QR code.</p>
+
+      <div class="share-link-box" id="resultLink"></div>
+
+      <div class="result-actions">
+        <button id="copyLinkBtn" class="btn-secondary">Copy link</button>
+        <button id="toggleQrBtn" class="btn-secondary">Show QR code</button>
+      </div>
+
+      <div id="qrBox" class="qr-box hidden">
+        <img id="qrImg" src="" alt="QR code" width="200" height="200" />
+      </div>
+
+      <button id="openNowBtn" class="btn-primary" style="margin-top:18px;">Open it now</button>
+      <button id="createAnotherBtn" class="btn-secondary" style="margin-top:10px; width:100%;">Create another</button>
+    </div>
+
+    <div class="home-links">
+      <a href="inbox.html">My inbox</a>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="shared.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>
