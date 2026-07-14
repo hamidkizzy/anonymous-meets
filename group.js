@@ -189,10 +189,13 @@ function setStatus(state) {
   statusDot.className = `status-dot ${state}`;
 }
 
+let realtimeChannel = null;
+const typingUsers = new Map();
+
 function subscribeRealtime() {
   setStatus("connecting");
 
-  sb.channel(`group-messages:${group.id}`)
+  realtimeChannel = sb.channel(`group-messages:${group.id}`)
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "group_messages" },
@@ -201,6 +204,7 @@ function subscribeRealtime() {
         if (msg.group_id !== group.id) return;
         if (rowsById.has(msg.id)) return;
 
+        clearTypingUser(msg.sender_id);
         const wasNearBottom = isNearBottom;
         renderMessage(msg);
         if (msg.sender_id !== session.user.id) {
@@ -224,11 +228,72 @@ function subscribeRealtime() {
         removeMessageRow(payload.old.id);
       }
     )
+    .on("broadcast", { event: "typing" }, (msg) => {
+      if (msg.payload.userId === session.user.id) return;
+      showTypingUser(msg.payload.userId);
+    })
     .subscribe((status) => {
       if (status === "SUBSCRIBED") setStatus("connected");
       else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setStatus("error");
       else if (status === "CLOSED") setStatus("connecting");
     });
+}
+
+/* ============================================================
+   Typing indicator — tracks multiple simultaneous typers
+   ============================================================ */
+let lastTypingSentAt = 0;
+
+function broadcastTyping() {
+  if (!realtimeChannel) return;
+  const now = Date.now();
+  if (now - lastTypingSentAt < 2000) return;
+  lastTypingSentAt = now;
+  realtimeChannel.send({
+    type: "broadcast",
+    event: "typing",
+    payload: { userId: session.user.id },
+  });
+}
+
+function showTypingUser(userId) {
+  if (typingUsers.has(userId)) clearTimeout(typingUsers.get(userId));
+  const timeout = setTimeout(() => clearTypingUser(userId), 3000);
+  typingUsers.set(userId, timeout);
+  renderTypingIndicator();
+}
+
+function clearTypingUser(userId) {
+  if (typingUsers.has(userId)) {
+    clearTimeout(typingUsers.get(userId));
+    typingUsers.delete(userId);
+    renderTypingIndicator();
+  }
+}
+
+function renderTypingIndicator() {
+  let el = document.getElementById("typingIndicatorRow");
+
+  if (typingUsers.size === 0) {
+    if (el) el.remove();
+    return;
+  }
+
+  const names = Array.from(typingUsers.keys()).map((id) => tagFor(id).label);
+  const text = names.length === 1 ? `${names[0]} is typing` : `${names.length} people are typing`;
+
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "typingIndicatorRow";
+    el.className = "msg-row theirs";
+    messagesEl.appendChild(el);
+    if (isNearBottom) scrollToBottom(true);
+  }
+
+  el.innerHTML = `
+    <div class="msg-tag" style="color:var(--text-muted)">${escapeHtml(text)}</div>
+    <div class="typing-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  `;
 }
 
 function subscribePresence() {
@@ -273,6 +338,7 @@ function startPolling() {
 
     data.forEach((msg) => {
       if (!rowsById.has(msg.id)) {
+        clearTypingUser(msg.sender_id);
         renderMessage(msg);
         addedAny = true;
         if (msg.sender_id !== session.user.id) {
@@ -337,6 +403,7 @@ function updateCharCount() {
 inputEl.addEventListener("input", () => {
   autoResize();
   updateCharCount();
+  broadcastTyping();
 });
 
 inputEl.addEventListener("keydown", (e) => {

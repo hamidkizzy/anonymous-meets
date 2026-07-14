@@ -38,12 +38,25 @@ document.getElementById("toggleMyQrBtn").addEventListener("click", () => {
   btn.textContent = box.classList.contains("hidden") ? "Show QR code" : "Hide QR code";
 });
 
+let activeTab = "received";
+let latestReceived = [];
+let latestStarted = [];
+
+document.getElementById("tabReceived").addEventListener("click", () => switchTab("received"));
+document.getElementById("tabSent").addEventListener("click", () => switchTab("sent"));
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById("tabReceived").classList.toggle("active", tab === "received");
+  document.getElementById("tabSent").classList.toggle("active", tab === "sent");
+  renderActiveTab();
+}
+
 async function loadThreads() {
   const { data: threads, error } = await sb
     .from("chat_threads")
     .select("*")
-    .or(`creator_id.eq.${session.user.id},guest_id.eq.${session.user.id}`)
-    .order("created_at", { ascending: false });
+    .or(`creator_id.eq.${session.user.id},guest_id.eq.${session.user.id}`);
 
   if (error) {
     console.error("Failed to load threads:", error);
@@ -51,12 +64,9 @@ async function loadThreads() {
   }
 
   if (!threads.length) {
-    threadListEl.innerHTML = `
-      <div class="empty-inbox glass" style="border-radius: var(--radius-lg);">
-        <div class="icon">📭</div>
-        <p>Nothing here yet.</p>
-        <p style="font-size:12.5px; color:var(--text-faint); margin-top:6px;">Share your link above, or open someone else's, to get started.</p>
-      </div>`;
+    latestReceived = [];
+    latestStarted = [];
+    renderActiveTab();
     return;
   }
 
@@ -72,46 +82,69 @@ async function loadThreads() {
     if (!previewByThread.has(m.thread_id)) previewByThread.set(m.thread_id, m);
   });
 
-  const received = threads.filter((t) => t.creator_id === session.user.id);
-  const started = threads.filter((t) => t.guest_id === session.user.id);
+  // sort by most recent activity — latest message if any, else thread creation
+  const withActivity = threads.map((t) => {
+    const preview = previewByThread.get(t.id);
+    const activityAt = preview ? preview.created_at : t.created_at;
+    return { thread: t, preview, activityAt };
+  });
+  withActivity.sort((a, b) => new Date(b.activityAt) - new Date(a.activityAt));
 
+  latestReceived = withActivity.filter((x) => x.thread.creator_id === session.user.id);
+  latestStarted = withActivity.filter((x) => x.thread.guest_id === session.user.id);
+
+  updateTabDots();
+  renderActiveTab();
+}
+
+function updateTabDots() {
+  const receivedUnread = latestReceived.some((x) => isUnread(x));
+  const startedUnread = latestStarted.some((x) => isUnread(x));
+
+  const receivedBtn = document.getElementById("tabReceived");
+  const sentBtn = document.getElementById("tabSent");
+  receivedBtn.innerHTML = `Received${receivedUnread ? '<span class="tab-dot"></span>' : ""}`;
+  sentBtn.innerHTML = `Sent${startedUnread ? '<span class="tab-dot"></span>' : ""}`;
+}
+
+function isUnread({ thread, preview }) {
+  if (!preview || preview.sender_id === session.user.id) return false;
+  const isCreator = thread.creator_id === session.user.id;
+  const myLastRead = isCreator ? thread.creator_last_read_at : thread.guest_last_read_at;
+  return !myLastRead || new Date(preview.created_at) > new Date(myLastRead);
+}
+
+function renderActiveTab() {
+  const list = activeTab === "received" ? latestReceived : latestStarted;
   threadListEl.innerHTML = "";
 
-  if (received.length) {
-    threadListEl.appendChild(sectionTitle("People who messaged you"));
-    received.forEach((t) => threadListEl.appendChild(threadCard(t, previewByThread)));
+  if (!list.length) {
+    const emptyMsg =
+      activeTab === "received"
+        ? "No one's messaged you yet. Share your link above."
+        : "You haven't started any chats yet. Open someone's link to begin.";
+    threadListEl.innerHTML = `
+      <div class="empty-inbox glass" style="border-radius: var(--radius-lg);">
+        <div class="icon">📭</div>
+        <p>${emptyMsg}</p>
+      </div>`;
+    return;
   }
 
-  if (started.length) {
-    threadListEl.appendChild(sectionTitle("Chats you started"));
-    started.forEach((t) => threadListEl.appendChild(threadCard(t, previewByThread)));
-  }
+  list.forEach((entry) => threadListEl.appendChild(threadCard(entry)));
 }
 
-function sectionTitle(text) {
-  const el = document.createElement("div");
-  el.className = "inbox-section-title";
-  el.textContent = text;
-  return el;
-}
-
-function threadCard(t, previewByThread) {
+function threadCard({ thread: t, preview }) {
   const isCreator = t.creator_id === session.user.id;
   const otherUserId = isCreator ? t.guest_id : t.creator_id;
-  const myLastRead = isCreator ? t.creator_last_read_at : t.guest_last_read_at;
   const tag = tagFor(otherUserId);
-  const preview = previewByThread.get(t.id);
-
-  const isUnread =
-    preview &&
-    preview.sender_id !== session.user.id &&
-    (!myLastRead || new Date(preview.created_at) > new Date(myLastRead));
+  const unread = isUnread({ thread: t, preview });
 
   const card = document.createElement("div");
   card.className = "thread-card glass";
   card.innerHTML = `
     <div class="thread-info">
-      ${isUnread ? '<span class="unread-dot"></span>' : ""}
+      ${unread ? '<span class="unread-dot"></span>' : ""}
       <div class="thread-text">
         <div class="thread-tag" style="color:${tag.color}">${escapeHtml(tag.label)}</div>
         <div class="thread-preview">${preview ? escapeHtml(preview.content) : "No messages yet"}</div>

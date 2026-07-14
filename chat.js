@@ -235,10 +235,12 @@ function setStatus(state) {
   statusDot.className = `status-dot ${state}`;
 }
 
+let realtimeChannel = null;
+
 function subscribeRealtime() {
   setStatus("connecting");
 
-  sb.channel(`chat-thread:${thread.id}`)
+  realtimeChannel = sb.channel(`chat-thread:${thread.id}`)
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "chat_messages" },
@@ -247,6 +249,7 @@ function subscribeRealtime() {
         if (msg.thread_id !== thread.id) return;
         if (rowsById.has(msg.id)) return;
 
+        hideTypingIndicator();
         const wasNearBottom = isNearBottom;
         renderMessage(msg);
         markThreadRead();
@@ -271,11 +274,53 @@ function subscribeRealtime() {
         removeMessageRow(payload.old.id);
       }
     )
+    .on("broadcast", { event: "typing" }, (msg) => {
+      if (msg.payload.userId === session.user.id) return;
+      showTypingIndicator();
+    })
     .subscribe((status) => {
       if (status === "SUBSCRIBED") setStatus("connected");
       else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setStatus("error");
       else if (status === "CLOSED") setStatus("connecting");
     });
+}
+
+/* ============================================================
+   Typing indicator
+   ============================================================ */
+let lastTypingSentAt = 0;
+let typingHideTimer = null;
+
+function broadcastTyping() {
+  if (!realtimeChannel) return;
+  const now = Date.now();
+  if (now - lastTypingSentAt < 2000) return;
+  lastTypingSentAt = now;
+  realtimeChannel.send({
+    type: "broadcast",
+    event: "typing",
+    payload: { userId: session.user.id },
+  });
+}
+
+function showTypingIndicator() {
+  let el = document.getElementById("typingIndicatorRow");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "typingIndicatorRow";
+    el.className = "msg-row theirs";
+    el.innerHTML = `<div class="typing-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+    messagesEl.appendChild(el);
+    if (isNearBottom) scrollToBottom(true);
+  }
+  clearTimeout(typingHideTimer);
+  typingHideTimer = setTimeout(hideTypingIndicator, 3000);
+}
+
+function hideTypingIndicator() {
+  const el = document.getElementById("typingIndicatorRow");
+  if (el) el.remove();
+  clearTimeout(typingHideTimer);
 }
 
 const POLL_INTERVAL_MS = 4000;
@@ -301,6 +346,7 @@ function startPolling() {
 
     data.forEach((msg) => {
       if (!rowsById.has(msg.id)) {
+        hideTypingIndicator();
         renderMessage(msg);
         addedAny = true;
         if (msg.sender_id !== session.user.id) {
@@ -366,6 +412,7 @@ function updateCharCount() {
 inputEl.addEventListener("input", () => {
   autoResize();
   updateCharCount();
+  broadcastTyping();
 });
 
 inputEl.addEventListener("keydown", (e) => {
