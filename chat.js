@@ -49,7 +49,7 @@ const backBtn = document.getElementById("backBtn");
       return;
     }
     thread = await findOrCreateThread(toId);
-    backBtn.href = "index.html";
+    backBtn.href = "inbox.html";
   } else if (threadId) {
     thread = await getThreadById(threadId);
     backBtn.href = "inbox.html";
@@ -127,9 +127,19 @@ function enterChat() {
   setInterval(updateExpiryPill, 30000);
 
   loadHistory().then(() => {
+    markThreadRead();
     subscribeRealtime();
     startPolling();
   });
+}
+
+async function markThreadRead() {
+  const field = thread.creator_id === session.user.id ? "creator_last_read_at" : "guest_last_read_at";
+  const { error } = await sb
+    .from("chat_threads")
+    .update({ [field]: new Date().toISOString() })
+    .eq("id", thread.id);
+  if (error) console.error("Failed to mark thread read:", error);
 }
 
 function renderMessage(msg, { animate = true } = {}) {
@@ -239,6 +249,7 @@ function subscribeRealtime() {
 
         const wasNearBottom = isNearBottom;
         renderMessage(msg);
+        markThreadRead();
         if (msg.sender_id !== session.user.id) {
           notifyNewMessage(msg.sender_id, tagFor(otherUserId).label, msg.content);
         }
@@ -299,6 +310,7 @@ function startPolling() {
     });
 
     if (addedAny) {
+      markThreadRead();
       if (wasNearBottom) scrollToBottom(true);
       else {
         unseenCount += 1;
