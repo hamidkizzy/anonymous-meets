@@ -124,6 +124,18 @@ function renderMessage(msg, { animate = true } = {}) {
 
   row.appendChild(wrap);
 
+  attachLongPress(bubble, {
+    onLongPress: () => {
+      const actions = [
+        { label: "Copy text", onClick: () => { navigator.clipboard.writeText(msg.content); showToast("Copied to clipboard"); } },
+      ];
+      if (mine) {
+        actions.push({ label: "Delete message", danger: true, onClick: () => deleteMessage(msg.id) });
+      }
+      showActionSheet(actions);
+    },
+  });
+
   const time = document.createElement("div");
   time.className = "msg-time";
   time.textContent = formatTime(msg.created_at);

@@ -154,8 +154,26 @@ function threadCard({ thread: t, preview }) {
       <div class="thread-time">${timeRemaining(t.expires_at)}</div>
     </div>
   `;
-  card.addEventListener("click", () => {
-    window.location.href = `chat.html?thread=${t.id}`;
+  attachLongPress(card, {
+    onClick: () => { window.location.href = `chat.html?thread=${t.id}`; },
+    onLongPress: () => {
+      showActionSheet([
+        { label: "Open chat", onClick: () => { window.location.href = `chat.html?thread=${t.id}`; } },
+        { label: "Delete chat", danger: true, onClick: () => confirmDeleteThread(t.id) },
+      ]);
+    },
   });
   return card;
+}
+
+async function confirmDeleteThread(threadId) {
+  if (!confirm("Delete this chat for both of you? This can't be undone.")) return;
+  const { error } = await sb.from("chat_threads").delete().eq("id", threadId);
+  if (error) {
+    console.error("Failed to delete thread:", error);
+    showToast("Couldn't delete — try again");
+    return;
+  }
+  showToast("Chat deleted");
+  loadThreads();
 }

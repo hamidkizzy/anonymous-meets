@@ -145,3 +145,119 @@ function setupNotifButton(btnEl) {
     setTimeout(() => btnEl.classList.add("hidden"), 1200);
   });
 }
+
+/* ============================================================
+   Long-press → action sheet (chat/thread & message manipulation)
+   Works via touch-and-hold, mouse-and-hold, or right-click.
+   ============================================================ */
+function attachLongPress(el, { onLongPress, onClick, ms = 500 }) {
+  let timer = null;
+  let longPressFired = false;
+  let startX = 0;
+  let startY = 0;
+
+  const start = (x, y) => {
+    longPressFired = false;
+    startX = x;
+    startY = y;
+    timer = setTimeout(() => {
+      longPressFired = true;
+      timer = null;
+      if (navigator.vibrate) navigator.vibrate(12);
+      onLongPress();
+    }, ms);
+  };
+  const cancel = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+  const move = (x, y) => {
+    if (Math.abs(x - startX) > 10 || Math.abs(y - startY) > 10) cancel();
+  };
+
+  el.addEventListener("touchstart", (e) => { const t = e.touches[0]; start(t.clientX, t.clientY); }, { passive: true });
+  el.addEventListener("touchmove", (e) => { const t = e.touches[0]; move(t.clientX, t.clientY); }, { passive: true });
+  el.addEventListener("touchend", cancel);
+  el.addEventListener("touchcancel", cancel);
+
+  el.addEventListener("mousedown", (e) => { if (e.button === 0) start(e.clientX, e.clientY); });
+  el.addEventListener("mousemove", (e) => { if (timer) move(e.clientX, e.clientY); });
+  el.addEventListener("mouseup", cancel);
+  el.addEventListener("mouseleave", cancel);
+
+  el.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    cancel();
+    longPressFired = true;
+    onLongPress();
+  });
+
+  el.addEventListener("click", (e) => {
+    if (longPressFired) {
+      e.preventDefault();
+      e.stopPropagation();
+      longPressFired = false;
+      return;
+    }
+    if (onClick) onClick(e);
+  });
+}
+
+function showActionSheet(actions) {
+  hideActionSheet();
+
+  const overlay = document.createElement("div");
+  overlay.id = "actionSheetOverlay";
+  overlay.className = "action-sheet-overlay";
+
+  const sheet = document.createElement("div");
+  sheet.className = "action-sheet glass";
+
+  actions.forEach((action) => {
+    const btn = document.createElement("button");
+    btn.className = "action-sheet-btn" + (action.danger ? " danger" : "");
+    btn.textContent = action.label;
+    btn.addEventListener("click", () => {
+      hideActionSheet();
+      action.onClick();
+    });
+    sheet.appendChild(btn);
+  });
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "action-sheet-btn cancel";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.addEventListener("click", hideActionSheet);
+  sheet.appendChild(cancelBtn);
+
+  overlay.appendChild(sheet);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) hideActionSheet();
+  });
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add("visible"));
+}
+
+function hideActionSheet() {
+  const existing = document.getElementById("actionSheetOverlay");
+  if (existing) existing.remove();
+}
+
+function showToast(text) {
+  const existing = document.getElementById("appToast");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "appToast";
+  toast.className = "app-toast";
+  toast.textContent = text;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("visible"));
+
+  setTimeout(() => {
+    toast.classList.remove("visible");
+    setTimeout(() => toast.remove(), 300);
+  }, 1600);
+}

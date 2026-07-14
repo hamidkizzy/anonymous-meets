@@ -678,3 +678,66 @@ textarea#messageInput::placeholder { color: var(--text-faint); }
 @media (prefers-reduced-motion: reduce) {
   .blob, .msg-row, .status-dot.connected { animation: none !important; }
 }
+
+/* ===== Action sheet (long-press menu) ===== */
+.action-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+.action-sheet-overlay.visible { background: rgba(0,0,0,0.5); }
+
+.action-sheet {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 20px 20px 0 0;
+  padding: 10px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+}
+.action-sheet-overlay.visible .action-sheet { transform: translateY(0); }
+
+.action-sheet-btn {
+  padding: 14px;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-main);
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease;
+}
+.action-sheet-btn:hover { background: rgba(255,255,255,0.1); }
+.action-sheet-btn.danger { color: var(--danger); }
+.action-sheet-btn.cancel { color: var(--text-muted); margin-top: 4px; }
+
+/* ===== Toast ===== */
+.app-toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(20,18,32,0.95);
+  color: var(--text-main);
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  z-index: 1200;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  border: 1px solid var(--glass-border);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.app-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
