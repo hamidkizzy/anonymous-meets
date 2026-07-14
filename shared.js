@@ -261,3 +261,69 @@ function showToast(text) {
     setTimeout(() => toast.remove(), 300);
   }, 1600);
 }
+
+/* ============================================================
+   Swipe-to-reply — drag a message row horizontally to trigger
+   a reply, WhatsApp-style. Works alongside attachLongPress on
+   the same row without conflicting (drag vs hold+still).
+   ============================================================ */
+function attachSwipeToReply(row, wrap, onReply) {
+  const THRESHOLD = 56;
+  const MAX_DRAG = 70;
+  let startX = 0;
+  let startY = 0;
+  let dragging = false;
+  let horizontal = false;
+
+  const icon = document.createElement("div");
+  icon.className = "swipe-reply-icon";
+  icon.textContent = "↩";
+  row.style.position = "relative";
+  row.appendChild(icon);
+
+  function onStart(x, y) {
+    startX = x;
+    startY = y;
+    dragging = true;
+    horizontal = false;
+  }
+
+  function onMove(x, y, e) {
+    if (!dragging) return;
+    const dx = x - startX;
+    const dy = y - startY;
+
+    if (!horizontal) {
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+        horizontal = true;
+      } else if (Math.abs(dy) > 8) {
+        dragging = false;
+        return;
+      } else {
+        return;
+      }
+    }
+
+    if (e && e.cancelable) e.preventDefault();
+    const clamped = Math.max(0, Math.min(MAX_DRAG, dx));
+    wrap.style.transform = `translateX(${clamped}px)`;
+    icon.style.opacity = String(Math.min(1, clamped / THRESHOLD));
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    const dx = parseFloat((wrap.style.transform.match(/-?\d+(\.\d+)?/) || [0])[0]) || 0;
+    wrap.style.transition = "transform 0.2s ease";
+    wrap.style.transform = "translateX(0)";
+    icon.style.opacity = "0";
+    setTimeout(() => { wrap.style.transition = ""; }, 200);
+    if (horizontal && dx > THRESHOLD) onReply();
+    horizontal = false;
+  }
+
+  row.addEventListener("touchstart", (e) => { const t = e.touches[0]; onStart(t.clientX, t.clientY); }, { passive: true });
+  row.addEventListener("touchmove", (e) => { const t = e.touches[0]; onMove(t.clientX, t.clientY, e); }, { passive: false });
+  row.addEventListener("touchend", onEnd);
+  row.addEventListener("touchcancel", onEnd);
+}

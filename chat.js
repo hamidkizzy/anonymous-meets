@@ -154,6 +154,18 @@ function renderMessage(msg, { animate = true } = {}) {
   const wrap = document.createElement("div");
   wrap.className = "bubble-wrap";
 
+  if (msg.reply_to_id) {
+    const quote = document.createElement("div");
+    quote.className = "reply-quote";
+    const authorLabel = msg.reply_sender_id === session.user.id ? "You" : tagFor(otherUserId).label;
+    quote.innerHTML = `
+      <div class="reply-quote-author">${escapeHtml(authorLabel)}</div>
+      <div class="reply-quote-text">${escapeHtml(msg.reply_preview || "")}</div>
+    `;
+    quote.addEventListener("click", () => jumpToMessage(msg.reply_to_id));
+    wrap.appendChild(quote);
+  }
+
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   bubble.textContent = msg.content;
@@ -173,6 +185,7 @@ function renderMessage(msg, { animate = true } = {}) {
   attachLongPress(bubble, {
     onLongPress: () => {
       const actions = [
+        { label: "Reply", onClick: () => startReply(msg) },
         { label: "Copy text", onClick: () => { navigator.clipboard.writeText(msg.content); showToast("Copied to clipboard"); } },
       ];
       if (mine) {
@@ -182,6 +195,8 @@ function renderMessage(msg, { animate = true } = {}) {
     },
   });
 
+  attachSwipeToReply(row, wrap, () => startReply(msg));
+
   const time = document.createElement("div");
   time.className = "msg-time";
   time.textContent = formatTime(msg.created_at);
@@ -190,6 +205,17 @@ function renderMessage(msg, { animate = true } = {}) {
   messagesEl.appendChild(row);
   if (msg.id != null) rowsById.set(msg.id, row);
   return row;
+}
+
+function jumpToMessage(id) {
+  const row = rowsById.get(id);
+  if (!row) {
+    showToast("Original message no longer available");
+    return;
+  }
+  row.scrollIntoView({ behavior: "smooth", block: "center" });
+  row.classList.add("flash-highlight");
+  setTimeout(() => row.classList.remove("flash-highlight"), 1000);
 }
 
 function removeMessageRow(id) {
@@ -379,15 +405,46 @@ function startPolling() {
   }, POLL_INTERVAL_MS);
 }
 
+let replyingTo = null;
+const replyStripEl = document.getElementById("replyStrip");
+const replyStripCancelBtn = document.getElementById("replyStripCancel");
+
+function startReply(msg) {
+  replyingTo = {
+    id: msg.id,
+    preview: msg.content.slice(0, 140),
+    senderId: msg.sender_id,
+  };
+  const authorLabel = msg.sender_id === session.user.id ? "You" : tagFor(otherUserId).label;
+  document.getElementById("replyStripAuthor").textContent = `Replying to ${authorLabel}`;
+  document.getElementById("replyStripPreview").textContent = replyingTo.preview;
+  replyStripEl.classList.remove("hidden");
+  inputEl.focus();
+}
+
+function cancelReply() {
+  replyingTo = null;
+  replyStripEl.classList.add("hidden");
+}
+
+replyStripCancelBtn.addEventListener("click", cancelReply);
+
 async function sendMessage() {
   const content = inputEl.value.trim();
   if (!content) return;
 
   sendBtn.disabled = true;
 
+  const payload = { thread_id: thread.id, sender_id: session.user.id, content };
+  if (replyingTo) {
+    payload.reply_to_id = replyingTo.id;
+    payload.reply_preview = replyingTo.preview;
+    payload.reply_sender_id = replyingTo.senderId;
+  }
+
   const { data, error } = await sb
     .from("chat_messages")
-    .insert({ thread_id: thread.id, sender_id: session.user.id, content })
+    .insert(payload)
     .select()
     .single();
 
@@ -402,6 +459,7 @@ async function sendMessage() {
   updateCharCount();
   sendBtn.disabled = false;
   inputEl.focus();
+  cancelReply();
 
   if (data && !rowsById.has(data.id)) {
     const wasNearBottom = isNearBottom;

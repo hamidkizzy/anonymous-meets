@@ -741,3 +741,90 @@ textarea#messageInput::placeholder { color: var(--text-faint); }
   white-space: nowrap;
 }
 .app-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== Reply feature ===== */
+.msg-row { touch-action: pan-y; }
+
+.swipe-reply-icon {
+  position: absolute;
+  top: 50%;
+  left: -34px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(108, 92, 231, 0.18);
+  color: var(--accent-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  pointer-events: none;
+}
+.msg-row.mine .swipe-reply-icon { left: auto; right: -34px; }
+
+.reply-quote {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  margin-bottom: -6px;
+  border-left: 3px solid var(--accent-2);
+  border-radius: 8px 8px 0 0;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+  max-width: 100%;
+}
+.msg-row.mine .reply-quote { background: rgba(255,255,255,0.14); }
+.reply-quote-author { font-size: 11px; font-weight: 600; }
+.reply-quote-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+.msg-row.mine .reply-quote-text { color: rgba(255,255,255,0.75); }
+
+.msg-row.flash-highlight .bubble {
+  animation: flashHighlight 1s ease;
+}
+@keyframes flashHighlight {
+  0%, 100% { box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+  30% { box-shadow: 0 0 0 3px var(--accent-2); }
+}
+
+.reply-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  margin: 0 4px 8px;
+  border-left: 3px solid var(--accent-2);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+}
+.reply-strip-text { min-width: 0; }
+.reply-strip-author { font-size: 11.5px; font-weight: 600; color: var(--accent-2); }
+.reply-strip-preview {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reply-strip-cancel {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.reply-strip-cancel:hover { background: rgba(255,255,255,0.14); }
